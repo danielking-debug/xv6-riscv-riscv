@@ -7,6 +7,8 @@
 #include "proc.h"
 #include "vm.h"
 
+
+
 uint64
 sys_exit(void)
 {
@@ -111,4 +113,10 @@ uint64
 sys_freemem(void)
 {
   return freemem();
+}
+uint64
+sys_memsize(void)
+{
+  extern uint64 dtb_memsize(void);
+  return dtb_memsize();
 }

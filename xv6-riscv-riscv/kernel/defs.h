@@ -1,3 +1,5 @@
+#include "types.h"
+
 // clang-format off
 struct buf;
 struct context;
@@ -10,6 +12,7 @@ struct sleeplock;
 struct stat;
 struct superblock;
 
+void         main(void);
 // bio.c
 void            binit(void);
 struct buf*     bread(uint, uint);
@@ -56,6 +59,7 @@ int             writei(struct inode*, int, uint64, uint, uint);
 void            itrunc(struct inode*);
 void            ireclaim(int);
 
+
 // kalloc.c
 void*           kalloc(void);
 void            kfree(void *);
@@ -78,6 +82,7 @@ int             pipewrite(struct pipe*, uint64, int);
 int             printf(char*, ...) __attribute__ ((format (printf, 1, 2)));
 void            panic(char*) __attribute__((noreturn));
 void            printfinit(void);
+
 
 // proc.c
 int             cpuid(void);

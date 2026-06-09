@@ -4,17 +4,23 @@
 #include "riscv.h"
 #include "defs.h"
 
+extern uint64 dtb_pa;
 void main();
 void timerinit();
 
 // entry.S needs one stack per CPU.
 __attribute__((aligned(16))) char stack0[4096 * NCPU];
 
+// This stores the DTB address so the rest of the kernel can use it
+
+
 // entry.S jumps here in machine mode on stack0.
 void
-start()
+start(uint64 hartid, uint64 dtb)
 {
+  dtb_pa = dtb;
   // set M Previous Privilege mode to Supervisor, for mret.
+  printf("hartid=%ld dtb=%li\n" , hartid, dtb);
   unsigned long x = r_mstatus();
   x &= ~MSTATUS_MPP_MASK;
   x |= MSTATUS_MPP_S;
@@ -46,6 +52,7 @@ start()
 
   // switch to supervisor mode and jump to main().
   asm volatile("mret");
+  main();
 }
 
 // ask each hart to generate timer interrupts.
