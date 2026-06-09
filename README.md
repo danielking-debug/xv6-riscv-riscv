@@ -1,6 +1,6 @@
 Working through the xv6 operating system textbook excercises.
 
-### Completed EXercises
+### Completed Exercises
 - Chapter 1 - ping-pong IPC Benchmark (user/pingpong.c)
   - Two processes passing a byte through pipes
   - Measures kernel IPC performance in exchanges/sec
