@@ -149,6 +149,7 @@ UPROGS=\
 	$U/_pingpong\
 	$U/_freetest\
 	$U/_dtbtest\
+	$U/_myinterp\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

@@ -21,31 +21,56 @@ flags2perm(int flags)
   return perm;
 }
 
-//
-// the implementation of the exec() system call
-//
-int
-kexec(char *path, char **argv)
-{
-  char *s, *last;
-  int i, off;
-  uint64 argc, sz = 0, sp, ustack[MAXARG], stackbase;
-  struct elfhdr elf;
-  struct inode *ip;
-  struct proghdr ph;
-  pagetable_t pagetable = 0, oldpagetable;
-  struct proc *p = myproc();
+  int 
+  kexec(char *path, char **argv)
+  {
+    char *s, *last;
+    int i, off;
+    uint64 argc, sz = 0, sp, ustack[MAXARG], stackbase;
+    struct elfhdr elf;
+    struct inode *ip;
+    struct proghdr ph;
+    pagetable_t pagetable = 0, oldpagetable;
+    struct proc *p = myproc();
 
-  begin_op();
+    begin_op();
 
-  // Open the executable file.
-  if ((ip = namei(path)) == 0) {
-    end_op();
-    return -1;
-  }
-  ilock(ip);
+    if((ip = namei(path)) == 0){
+      end_op();
+      return -1;
+    }
+    ilock(ip);
 
-  // Read the ELF header.
+    char shebang[128];
+    int n = readi(ip, 0, (uint64)shebang, 0, sizeof(shebang)-1);
+    if(n > 1 && shebang[0] == '#' && shebang[1] == '!')
+    {
+      shebang[n] = '\0';
+
+      char *interp = shebang + 2;
+      char *nl = interp;
+      while(*nl != '\n' && *nl != '\0') nl++;
+      *nl = '\0';
+
+      while(*interp == ' ') interp++;
+
+      static char *newargv[MAXARG];
+      int argc2 = 0;
+      newargv[argc2++] = interp;
+      newargv[argc2++] = path;
+      for(i = 1; argv[i] && argc2 <  MAXARG-1; i++)
+      newargv[argc2++] = argv[i];
+      newargv[argc2] = 0;
+
+      iunlockput(ip);
+      end_op();
+      printf("about to exec interp=[%s] newargv[0]=[%s] newargv[1]=[%s]\n"
+        , interp, newargv[0], newargv[1]);
+      return kexec(interp, newargv);
+    }
+
+
+// Read the ELF header.
   if (readi(ip, 0, (uint64)&elf, 0, sizeof(elf)) != sizeof(elf))
     goto bad;
 
