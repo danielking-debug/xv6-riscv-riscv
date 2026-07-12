@@ -23,6 +23,9 @@ acquire(struct spinlock *lk)
 {
   push_off(); // disable interrupts to avoid deadlock.
   if (holding(lk))
+  for (char *s = lk->name; *s; s++)
+  uartputc_sync(*s);
+  uartputc_sync('\n');
     panic("acquire");
 
   // On RISC-V, __atomic_exchange_n turns into an atomic swap:

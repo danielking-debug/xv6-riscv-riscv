@@ -172,10 +172,10 @@ clockintr()
     wakeup(&ticks);
     release(&tickslock);
   }
-
+  uartpoll();
   // ask for the next timer interrupt. this also clears
   // the interrupt request. 1000000 is about a tenth
-  // of a second.
+  // of a second. 
   w_stimecmp(r_time() + 1000000);
 }
 
@@ -195,10 +195,9 @@ devintr()
     // irq indicates which device interrupted.
     int irq = plic_claim();
 
-    if (irq == UART0_IRQ) {
-      uartintr();
-    } else if (irq == VIRTIO0_IRQ) {
+    if (irq == VIRTIO0_IRQ) {
       virtio_disk_intr();
+    } else if (irq == UART0_IRQ) {
     } else if (irq) {
       printf("unexpected interrupt irq=%d\n", irq);
     }

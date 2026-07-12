@@ -83,17 +83,12 @@ uartwrite(char buf[], int n)
 
   int i = 0;
   while (i < n) {
-    while (tx_busy != 0) {
-      // wait for a UART transmit-complete interrupt
-      // to set tx_busy to 0.
-      sleep(&tx_chan, &tx_lock);
-    }
+    while ((ReadReg(LSR) & LSR_TX_IDLE) == 0);
 
     WriteReg(THR, buf[i]);
-    i += 1;
-    tx_busy = 1;
+       i += 1;
   }
-
+  
   release(&tx_lock);
 }
 
@@ -157,4 +152,12 @@ uartintr(void)
       break;
     consoleintr(c);
   }
+
+}
+void
+uartpoll(void)
+{
+  int c;
+  while((c = uartgetc()) != -1)
+  consoleintr(c);
 }

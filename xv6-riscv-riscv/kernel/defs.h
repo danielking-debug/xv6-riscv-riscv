@@ -155,7 +155,7 @@ void            uartinit(void);
 void            uartintr(void);
 void            uartwrite(char [], int);
 void            uartputc_sync(int);
-
+void            uartpoll(void);
 // vm.c
 void            kvminit(void);
 void            kvminithart(void);
