@@ -504,3 +504,43 @@ sys_pipe(void)
   }
   return 0;
 }
+
+uint64
+sys_lseek(void)
+{
+  int fd, whence;
+  long offset;
+  struct file *f;
+
+  argfd(0, &fd, &f);
+  argint(2, &whence);
+
+  argaddr(1, (uint64*)&offset);
+
+  if(f->type != FD_INODE)
+  return -1;
+
+  ilock(f->ip);
+  uint64 filesize = f->ip->size;
+  iunlock(f->ip);
+
+  long newoff;
+  switch (whence)
+  {
+  case SEEK_SET:
+    newoff = offset;
+    break;
+  case SEEK_CUR:
+     newoff = f->off + offset;
+     break;
+  case SEEK_END:
+  newoff = filesize + offset;
+  break;
+  default:
+    return -1;
+  }
+  if(newoff < 0)
+  return -1;
+   f->off = newoff;
+   return newoff;
+}

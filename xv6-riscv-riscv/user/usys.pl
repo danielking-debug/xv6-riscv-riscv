@@ -44,3 +44,4 @@ entry("pause");
 entry("uptime");
 entry("freemem");
 entry("memsize");
+entry("lseek");

@@ -134,6 +134,15 @@ fileread(struct file *f, uint64 addr, int n)
 int
 filewrite(struct file *f, uint64 addr, int n)
 {
+  if(f->off > f->ip->size){
+    char zero = 0;
+    uint64 i;
+    ilock(f->ip);
+    for(i = f->ip->size; i < f->off; i++)
+    writei(f->ip, 0, (uint64)&zero, i, 1);
+    iunlock(f->ip);
+  }
+
   int r, ret = 0;
 
   if (f->writable == 0)

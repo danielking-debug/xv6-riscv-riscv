@@ -22,3 +22,4 @@
 #define SYS_close  21
 #define SYS_freemem 22
 #define SYS_memsize 23
+#define SYS_lseek 24

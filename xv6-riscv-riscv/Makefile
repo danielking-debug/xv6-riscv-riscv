@@ -150,6 +150,7 @@ UPROGS=\
 	$U/_freetest\
 	$U/_dtbtest\
 	$U/_myinterp\
+	$U/_lseektest\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
