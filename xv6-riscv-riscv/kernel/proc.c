@@ -554,12 +554,12 @@ sleep(void *chan, struct spinlock *lk)
   acquire(&p->lock); //DOC: sleeplock1
   release(lk);
 
-  // Go to sleep.
+  if(!p->killed){
   p->chan = chan;
   p->state = SLEEPING;
 
   sched();
-
+  }
   // Tidy up.
   p->chan = 0;
 

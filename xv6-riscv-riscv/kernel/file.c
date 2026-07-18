@@ -134,7 +134,7 @@ fileread(struct file *f, uint64 addr, int n)
 int
 filewrite(struct file *f, uint64 addr, int n)
 {
-  if(f->off > f->ip->size){
+  if(f->type == FD_INODE && f->off > f->ip->size){
     char zero = 0;
     uint64 i;
     ilock(f->ip);
