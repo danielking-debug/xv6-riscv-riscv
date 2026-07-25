@@ -1,97 +1,403 @@
-### XV6-riscv - Exercise solutions
-Working through the xv6-RISCV operating system
-textbook exercises by Cox, Kaashoek, and Morris,
+# xv6-riscv Exercise Solutions
 
-Built as a portfolio project to demonstrate system
-programming knowledge in C and low-level OS
-concept-memory management,IPC,device trees,exec 
-internals,device drivers,concurrency,and filesysystems.
+A collection of completed exercises and kernel modifications from the xv6 RISC-V operating systems textbook by Cox, Kaashoek, and Morris.
 
-### Completed Exercises
-- Chapter 1 - Ping-Oong IPC Benchmark (user/pingpong.c)
-  - Two processes passing a byte through pipes 100,000 times
-  - Measures kernel IPC performance in exchanges/sec
-  - Concepts: fork, pipe, file descriptors, uptime
-- Chapter 2 - freemem system call (kernel/kalloc.c, kernel/sysproc.c)
-   - Added a syscall_freemem syscall to the xv6 kernel
-   - Walks the kernel free page list to count available memory
-   - Returns free memory in bytes, testable via user/freetest.c
-   - Concept: syscalls, kernel memory, linked lists, defs.h
- - Chapter 3 - Page table
-   - Parse Riscv firmware device tree (FDT/DTB) at boot
-   - Walks FDT structure looking for memory@ node
-   - Fixed entry.s to preserve a1 register(DTB address) before stack setup overwrites it
-   - Concepts: device tree, RISCV boot sequence, register conventions, FDT binary format
-  Exercise 4 - Shebang(#!) Support(kernel/exec.c)
-   - exec() checks whether a file starts with #! before treating it as an ELF binary
-   - Parses the interpreter path, builds a new argv (interpreter, original scripts path, remaining args), and recurively calls exec with the interpreter as the new program
-   - Matches standard Unix shebang behavior (like #!/bin/sh)
-   - Debugged down to a single misread byte: a script created via echo "#!/interp" > file had literal quote characters written into it, which echo without quoting resolved
-  - Chapter 6 - Interrupts and Device Drivers
-    Exercise 1-Polling UART(np interrupts)(kernel/uarts.c,Kernel/trap.c)
-    - Removed interrupt driven UART entirely in favour of busy-wait polling
-    - Disabled the UART's own interrupt-enable register(IER) and removed the UART branch from the PLIC interrupt dispatch in devintr()
-    - Rewrote uartwrite() to busy-wait on the transmitter-idle status bit instead of sleeping on a wakeup that would never arrive, since no interrupt exists anymore to send it
-    - Added uartpoll(), called every timer tick from clockintr(),to check for and process incoming keystrokes via consoleintr()
-    - Root-caused a hang where uartpoll() had been declared but never actually called (void uartpool(void); sitting where the call should have been)-the exact kind of one-character-class bug that sillently does nothing rather than erroring
-  - Chapter 7-Locking
-    Exercise 3 - Per-CPU kalloc (kernel/kalloc.c)
-    - Replaced a single global freelist (and its one connected lock) with one free list and one spinlock per CPU
-    - kalloc() checks it own CPU's list first;if empty,it steals one page from another CPU's list rather than blocking
-    - kfree() always return pages to the freeing CPU's own list
-    - freemem()(Ch2Ex1) updated to sum across all per-CPU lists
-    - Concepts:lock contention,per-CPU data structures,work-stealing
-  - Chapter 9-Sleep and Wakeup
-    Exercise 3-Fix the kill/sleep race (kernel/proc.c)
-    - Closed a race where a process could be killed in the gap between checking a wait condition and actually calling sleep(), causing kill's wakeup to be missed and to process to sleep forever
-    - sleep() now checks p->killed directly (while already holding p->lock) immediatly before marking the process SLEEPING, eliminating the window entirely
-    - Also surfaced and fixed a seperate, urelated null-pointer bug in filewrite():the gap-filling logic added for the lseek exercise deferenced f->ip unconditionally, which crashed on pipe file descriptor (where ip is never set). Root-caused via objdump disassembly, matching the faulting instruction's stval offset (0x4c) to the ip->size field inside struct file. Fixed by guarding the gap-fill check with f->type ==FD_INODE
-  - Chapter 10 - file system
-    Exercise 7-implement lseek(kernel/sysfile.c,kernel/file.c)
-    - New lseek(fd, offset, whence) syscall supporting SEEK_SET, SEEK_CUR, and SEEK_END
-    - Update the file's offset without touching the contents
-    - Modified filewrite() to zero-fill gaps when writing past current end of file, so seeking past EOF and writing creates a proper hole rather than exposing garbage data
-    - Verified with a test program that seeks to start, reads back written data, seeks to end, appends more, and confirms full file contents match
-    
- 
+This repository extends xv6 with new system features and kernel improvements while exploring core operating system concepts including system calls, memory management, virtual memory, process scheduling, interrupts, device drivers, synchronization, and filesystems.
 
+Built as a systems programming portfolio project demonstrating C programming, RISC-V architecture, kernel debugging, and low-level operating system development.
 
-## Environment
-- OS: Ubuntu
-- Emulator: QEMU RiSC-V
-(qemu-system-riscv64, virt machine, 3harts)
-- Compiler: riscv64-unknown-elf-gcc
-   
- #### How to run
+---
+
+# Project Highlights
+
+- Implemented new xv6 system calls from user interface through kernel execution path
+- Modified RISC-V boot assembly and debugged early boot register corruption issues
+- Implemented device tree parsing during kernel initialization
+- Added Unix-compatible shebang (`#!`) script execution support
+- Redesigned kernel memory allocation using per-CPU free lists
+- Modified UART driver architecture from interrupt-driven I/O to polling-based operation
+- Debugged kernel crashes using assembly analysis, objdump, and fault address tracing
+- Implemented filesystem improvements including `lseek()` and sparse file support
+
+---
+
+# Completed Exercises
+
+# Chapter 1 — Unix Utilities
+
+## Exercise 1 — Ping-Pong IPC Benchmark
+
+**File:** `user/pingpong.c`
+
+Implemented a benchmark where two processes exchange a byte through pipes 100,000 times.
+
+### Concepts explored:
+- Process creation (`fork`)
+- Pipes and file descriptors
+- Inter-process communication
+- Kernel IPC performance measurement
+- System uptime measurement
+
+Measures IPC exchanges per second between processes.
+
+---
+
+# Chapter 2 — Operating System Organization
+
+## Exercise 1 — freemem System Call
+
+**Files:**
+- `kernel/kalloc.c`
+- `kernel/sysproc.c`
+
+Added a new system call that returns the amount of free physical memory available in bytes.
+
+Implementation:
+- Traverses kernel memory allocator free lists
+- Counts available pages
+- Converts page count into bytes using `PGSIZE`
+
+### Concepts explored:
+- System call implementation
+- Kernel memory allocator
+- Spinlocks
+- Physical memory management
+
+---
+
+# Chapter 3 — Page Tables
+
+## Exercise 1 — Device Tree Parser
+
+**File:** `kernel/dtb.c`
+
+Implemented a parser for the RISC-V firmware Device Tree Blob (DTB/FDT).
+
+The kernel now:
+- Reads the firmware-provided device tree
+- Searches for the memory node
+- Extracts physical memory size from the `reg` property
+
+### Debugging achievement
+
+Found and fixed an early boot register corruption bug.
+
+The DTB address was passed through the `a1` register, but stack initialization overwrote it before the kernel could use it.
+
+Fixed by preserving the register value inside `entry.S`.
+
+### Concepts explored:
+- Device Tree Binary format
+- RISC-V boot sequence
+- Assembly debugging
+- Calling conventions
+- Register preservation
+
+---
+
+## Exercise 4 — Shebang (`#!`) Support
+
+**File:** `kernel/exec.c`
+
+Implemented Unix-style script execution.
+
+Example:
+
+```bash
+#!/bin/sh
+```
+
+When executing a script, xv6 now:
+
+1. Detects the `#!` prefix
+2. Extracts the interpreter path
+3. Builds a new argument list
+4. Executes the interpreter with the script path as an argument
+
+Example:
+
+```
+./script.sh
+```
+
+becomes:
+
+```
+/bin/sh ./script.sh
+```
+
+### Debugging achievement
+
+Tracked down a script execution failure caused by a single incorrect byte.
+
+The issue was caused by literal quote characters being written into the script due to incorrect shell usage.
+
+### Concepts explored:
+- ELF loading
+- Process execution
+- Argument manipulation
+- Unix process conventions
+
+---
+
+# Chapter 4 — Traps and System Calls
+
+## Exercises 1–3 — Trap Architecture Analysis
+
+Completed written analysis of xv6 trap mechanisms.
+
+### Exercise 1
+
+Explored why trap handling cannot be completely rewritten in C.
+
+Conclusion:
+
+- `kernelvec.S` requires assembly for initial register handling and stack setup.
+- `trampoline.S` cannot be replaced by C because it executes during page-table switching before a valid kernel environment exists.
+
+---
+
+### Exercise 2
+
+Analyzed why the trapframe cannot simply be removed.
+
+A memory location accessible before and after the page-table switch is required to preserve critical state such as:
+
+- Kernel stack pointer
+- `satp` value
+- Saved registers
+
+Alternative designs exist, but an equivalent mechanism is unavoidable.
+
+---
+
+### Exercise 3
+
+Analyzed why the trampoline page is required.
+
+After switching page tables, the CPU must continue executing instructions from an address mapped in both address spaces.
+
+The trampoline page provides this shared execution location.
+
+### Concepts explored:
+- Trap handling
+- Virtual memory switching
+- Page table isolation
+- RISC-V privilege transitions
+
+---
+
+# Chapter 6 — Interrupts and Device Drivers
+
+## Exercise 1 — UART Polling Mode
+
+**Files:**
+- `kernel/uart.c`
+- `kernel/trap.c`
+
+Converted the UART driver from interrupt-driven I/O to polling-based operation.
+
+Changes:
+- Disabled UART interrupt generation
+- Removed UART interrupt handling from PLIC dispatch
+- Reworked `uartwrite()` to busy-wait on transmitter readiness
+- Added `uartpoll()` to process incoming characters during timer interrupts
+
+### Debugging achievement
+
+Found a silent logic bug where `uartpoll()` was declared but never called.
+
+A declaration existed:
+
+```c
+void uartpoll(void);
+```
+
+but the actual function invocation was missing.
+
+### Concepts explored:
+- Device drivers
+- UART hardware
+- Interrupt handling
+- Busy waiting
+- Hardware polling
+
+---
+
+# Chapter 7 — Locking
+
+## Exercise 3 — Per-CPU Kernel Allocator
+
+**File:** `kernel/kalloc.c`
+
+Replaced the global kernel free list with independent per-CPU allocators.
+
+Implementation:
+
+- Each CPU owns a separate free list
+- Each free list has its own spinlock
+- CPUs allocate locally first
+- Empty CPUs steal pages from other CPUs
+
+Updated `freemem()` to count memory across all CPU lists.
+
+### Concepts explored:
+- Lock contention reduction
+- Parallel memory allocation
+- Per-CPU data structures
+- Work stealing
+
+---
+
+# Chapter 9 — Sleep and Wakeup
+
+## Exercise 3 — Fix Kill/Sleep Race
+
+**File:** `kernel/proc.c`
+
+Fixed a race condition where a process could be killed between:
+
+1. Checking a sleep condition
+2. Entering the sleeping state
+
+This caused the wakeup signal from `kill()` to be missed, leaving the process sleeping forever.
+
+Solution:
+
+`sleep()` now checks `p->killed` while holding the process lock immediately before sleeping.
+
+---
+
+## Additional Kernel Debugging
+
+Found and fixed an unrelated filesystem crash.
+
+Problem:
+
+`filewrite()` dereferenced `f->ip` for pipe file descriptors.
+
+Pipes do not contain inode pointers, causing a kernel crash.
+
+Debugging process:
+
+- Used fault address from `stval`
+- Examined generated assembly using `objdump`
+- Matched the failing instruction offset to `struct file`
+
+Fixed by restricting inode-specific logic:
+
+```c
+if(f->type == FD_INODE)
+```
+
+---
+
+# Chapter 10 — File System
+
+## Exercise 7 — Implement lseek()
+
+**Files:**
+- `kernel/sysfile.c`
+- `kernel/file.c`
+
+Implemented the Unix `lseek()` system call.
+
+Supported operations:
+
+```
+SEEK_SET
+SEEK_CUR
+SEEK_END
+```
+
+Features:
+
+- Changes file offset without modifying file contents
+- Allows seeking beyond end-of-file
+- Supports sparse file creation
+
+Modified `filewrite()` so writing after seeking past EOF creates a zero-filled gap.
+
+Testing verified:
+
+- Seek to file start
+- Read existing data
+- Seek to end
+- Append data
+- Verify complete file contents
+
+### Concepts explored:
+- File descriptors
+- File offsets
+- Sparse files
+- Filesystem internals
+
+---
+
+# Build and Run
+
+## Requirements
+
+- RISC-V GCC toolchain
+- QEMU emulator
+- Make
+
+## Clone Repository
+
+```bash
+git clone https://github.com/danielking-debug/xv6-riscv-riscv.git
+
+cd xv6-riscv-riscv
+```
+
+## Build and Run xv6
 
 ```bash
 make qemu
 ```
 
-At the xv6 shell:
-
-```text
-pingpong    # Chapter 1 Exercise 1
-freetest    # Chapter 2 Exercise 2
-dtbtest     # Chapter 3 Exercise 1
-lseektest   # Chapter 10 Exercise 7
-usertest    # full regression suite
-```
-
-Test the shebang feature:
+## Run Tests
 
 ```bash
-echo '#!/myinterp' > myscript
-myscript
+make grade
 ```
 
-## License and Attribution
+---
 
-This project is based on MIT's xv6-riscv operating system.
+# Demo
 
-Original xv6-riscv repository:
-https://github.com/mit-pdos/xv6-riscv
+Screenshots and terminal demonstrations will be added here.
+
+---
+
+# License
+
+This repository contains modifications and exercise solutions built on top of xv6-riscv from MIT PDOS.
 
 The original xv6 source code remains under its original license.
 
-My modifications, experiments, and additions to this repository are my own work and are licensed under the MIT License.
+My own modifications and exercise solutions are provided under the MIT License.
+
+See:
+
+```
+LICENSE
+```
+
+for details.
+
+---
+
+# Skills Demonstrated
+
+- C programming
+- RISC-V architecture
+- Assembly debugging
+- Operating system design
+- Kernel development
+- Memory management
+- Virtual memory
+- Device drivers
+- Synchronization
+- Filesystem implementation
+- Debugging with GDB and objdump
