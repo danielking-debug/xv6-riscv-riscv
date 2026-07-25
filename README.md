@@ -84,3 +84,14 @@ Test the shebang feature:
 echo '#!/myinterp' > myscript
 myscript
 ```
+
+## License and Attribution
+
+This project is based on MIT's xv6-riscv operating system.
+
+Original xv6-riscv repository:
+https://github.com/mit-pdos/xv6-riscv
+
+The original xv6 source code remains under its original license.
+
+My modifications, experiments, and additions to this repository are my own work and are licensed under the MIT License.
