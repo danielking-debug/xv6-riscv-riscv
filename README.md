@@ -62,26 +62,25 @@ internals,device drivers,concurrency,and filesysystems.
 (qemu-system-riscv64, virt machine, 3harts)
 - Compiler: riscv64-unknown-elf-gcc
    
- ### How to run
- '''Bash
- make qemu
- '''
- 
- At the xv6 shell:
- '''
- pingpong    # Chapter 1 Exercise 1
- freetest    # Chapter 2 Exercise 2
- dtbtest     # Chapter 3 Exercise 1
- lseektest   # Chapter 10 Exercise 7
- usertest    # full regression suite
+ #### How to run
 
- Test the shebang feature:
- '''
- echo #!/myinterp > myscript
- myscript
- '''
+```bash
+make qemu
+```
 
+At the xv6 shell:
 
+```text
+pingpong    # Chapter 1 Exercise 1
+freetest    # Chapter 2 Exercise 2
+dtbtest     # Chapter 3 Exercise 1
+lseektest   # Chapter 10 Exercise 7
+usertest    # full regression suite
+```
 
- 
- 
+Test the shebang feature:
+
+```bash
+echo '#!/myinterp' > myscript
+myscript
+```
